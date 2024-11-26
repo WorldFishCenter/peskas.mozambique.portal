@@ -24,14 +24,14 @@ tab_revenue_content <- function() {
           class = "col-lg-8",
           card(
             title = "Revenue Time Series",
-            #mod_ts_ui(id = "revenue_ts")
+            # mod_ts_ui(id = "revenue_ts")
           )
         ),
         tags$div(
           class = "col-lg-4",
           card(
             title = "Revenue seasonal distribution",
-            #mod_spider_ui("revenue_spider")
+            # mod_spider_ui("revenue_spider")
           )
         )
       ),
@@ -51,7 +51,7 @@ tab_revenue_content <- function() {
       <li>Values are averaged across all fishing trips for the selected district</li>
     </ul>
   ",
-           # mod_treemap_ui("revenue_treemap")
+            mod_treemap_ui("revenue_treemap")
           )
         )
       )

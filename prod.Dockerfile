@@ -41,7 +41,8 @@ RUN install2.r --error --skipinstalled -n 2 \
     config \
     httr2 \
     golem \
-    shinyjs
+    shinyjs \
+    V8
 
 
 # Copy application files

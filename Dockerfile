@@ -26,7 +26,8 @@ RUN install2.r --error --skipinstalled -n 4 \
     htmlwidgets \
     memoise \
     purrr \
-    viridisLite
+    viridisLite \
+    V8
 
 
 # Final stage

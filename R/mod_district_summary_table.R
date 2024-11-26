@@ -1,4 +1,4 @@
-#' District Summary Table UI
+#' Mozambique District Summary Table UI
 #' @noRd
 mod_district_summary_table_ui <- function(id) {
   ns <- NS(id)
@@ -8,24 +8,24 @@ mod_district_summary_table_ui <- function(id) {
       selectInput(
         ns("currency"),
         "Select Currency",
-        choices = c("MWK", "USD", "EUR", "GBP"),
-        selected = "MWK"
+        choices = c("MZN", "USD", "EUR", "GBP"),
+        selected = "MZN"
       )
     ),
     reactable::reactableOutput(ns("table"))
   )
 }
 
-#' District Summary Table Server
+#' Mozambique District Summary Table Server
 #' @noRd
 mod_district_summary_table_server <- function(id, data, color_pal = c("#ffffd9", "#c7e9b4", "#41b6c4")) {
   moduleServer(id, function(input, output, session) {
     # Define available currencies and their conversion rates
     currencies <- list(
-      MWK = list(rate = 1, symbol = "MWK", decimals = 0), # No decimals for MWK
-      USD = list(rate = 0.00058, symbol = "$", decimals = 2), # 2 decimals for USD
-      EUR = list(rate = 0.00053, symbol = "\u20AC", decimals = 2), # Euro symbol
-      GBP = list(rate = 0.00045, symbol = "\u00A3", decimals = 2) # Pound symbol
+      MZN = list(rate = 1, symbol = "MZN", decimals = 2),
+      USD = list(rate = 0.016, symbol = "$", decimals = 2),
+      EUR = list(rate = 0.015, symbol = "\u20AC", decimals = 2),
+      GBP = list(rate = 0.013, symbol = "\u00A3", decimals = 2)
     )
 
     # Convert the data reactively based on selected currency
@@ -35,23 +35,14 @@ mod_district_summary_table_server <- function(id, data, color_pal = c("#ffffd9",
       rate <- currencies[[curr]]$rate
 
       data %>%
-        dplyr::select(
-          "sample_district",
-          "Catch (kg)",
-          "Catch per unit effort (kg)",
-          "Catch Value (MWK)",
-          "Price per kg (MWK)",
-          "N. fishers",
-          "Trip length (hrs)"
-        ) %>%
         dplyr::transmute(
-          sample_district = .data$sample_district,
-          Catch = round(.data$`Catch (kg)`, 1),
-          CPUE = round(.data$`Catch per unit effort (kg)`, 2),
-          `Catch Value` = .data$`Catch Value (MWK)` * rate,
-          `Price per kg` = .data$`Price per kg (MWK)` * rate,
-          `N. fishers` = round(.data$`N. fishers`, 1),
-          `Trip length` = round(.data$`Trip length (hrs)`, 1)
+          district = .data$district,
+          landing_site = .data$landing_site,
+          Catch = round(.data$mean_catch_kg, 1),
+          CPUE = round(.data$cpue_kg_fisher_hr, 2),
+          `Trip length` = round(.data$trip_duration_hrs, 1),
+          `Price per kg` = .data$price_per_kg_mzn * rate,
+          `Catch Value` = .data$mean_catch_price_mzn * rate
         )
     })
 
@@ -70,18 +61,35 @@ mod_district_summary_table_server <- function(id, data, color_pal = c("#ffffd9",
       }
     }
 
+    # Helper function to format currency values with appropriate decimals
+    format_currency <- function(value, curr, symbol) {
+      if (abs(value) < 1) {
+        # For small values, show up to 3 decimal places
+        formatted <- format(round(value, 3), nsmall = 3)
+      } else if (abs(value) < 10) {
+        # For values under 10, show 2 decimal places
+        formatted <- format(round(value, 2), nsmall = 2)
+      } else {
+        # For larger values, use comma separator and round based on currency
+        formatted <- if (curr == "MZN") {
+          scales::comma(round(value, 0))
+        } else {
+          scales::dollar(value, digits = 2, prefix = "")
+        }
+      }
+      paste(symbol, formatted)
+    }
+
     output$table <- reactable::renderReactable({
       curr_data <- converted_data()
       curr <- input$currency
       symbol <- currencies[[curr]]$symbol
-      decimals <- currencies[[curr]]$decimals
 
       # Pre-calculate ranges
       catch_range <- range(curr_data$Catch)
       value_range <- range(curr_data$`Catch Value`)
       price_range <- range(curr_data$`Price per kg`)
       cpue_range <- range(curr_data$CPUE)
-      fishers_range <- range(curr_data$`N. fishers`)
       trip_range <- range(curr_data$`Trip length`)
 
       reactable::reactable(
@@ -93,14 +101,19 @@ mod_district_summary_table_server <- function(id, data, color_pal = c("#ffffd9",
         striped = FALSE,
         fullWidth = TRUE,
         sortable = TRUE,
-        defaultSorted = "sample_district",
+        defaultSorted = "district",
         defaultColDef = reactable::colDef(
           align = "center",
           minWidth = 100
         ),
         columns = list(
-          sample_district = reactable::colDef(
+          district = reactable::colDef(
             name = "District",
+            minWidth = 140,
+            align = "left"
+          ),
+          landing_site = reactable::colDef(
+            name = "Landing Site",
             minWidth = 140,
             align = "left"
           ),
@@ -114,38 +127,18 @@ mod_district_summary_table_server <- function(id, data, color_pal = c("#ffffd9",
             cell = function(value) paste(value, "kg"),
             style = make_style_fn(cpue_range)
           ),
-          `Catch Value` = reactable::colDef(
-            format = reactable::colFormat(digits = decimals, separators = TRUE),
-            cell = function(value) {
-              formatted_value <- if (curr == "MWK") {
-                scales::comma(round(value, 0))
-              } else {
-                scales::dollar(value, digits = 2, prefix = "") # Using scales::dollar for proper decimal formatting
-              }
-              paste(symbol, formatted_value)
-            },
-            style = make_style_fn(value_range)
-          ),
-          `Price per kg` = reactable::colDef(
-            format = reactable::colFormat(digits = decimals),
-            cell = function(value) {
-              formatted_value <- if (curr == "MWK") {
-                scales::comma(round(value, 0))
-              } else {
-                scales::dollar(value, digits = 2, prefix = "") # Using scales::dollar for proper decimal formatting
-              }
-              paste(symbol, formatted_value)
-            },
-            style = make_style_fn(price_range)
-          ),
-          `N. fishers` = reactable::colDef(
-            format = reactable::colFormat(digits = 1),
-            style = make_style_fn(fishers_range)
-          ),
           `Trip length` = reactable::colDef(
             format = reactable::colFormat(digits = 1),
-            cell = function(value) paste(round(value, 1), "hrs"),
+            cell = function(value) paste(value, "hrs"),
             style = make_style_fn(trip_range)
+          ),
+          `Price per kg` = reactable::colDef(
+            cell = function(value) format_currency(value, curr, symbol),
+            style = make_style_fn(price_range)
+          ),
+          `Catch Value` = reactable::colDef(
+            cell = function(value) format_currency(value, curr, symbol),
+            style = make_style_fn(value_range)
           )
         )
       )

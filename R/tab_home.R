@@ -31,34 +31,12 @@ tab_home_content <- function() {
       message = "This application is currently in beta testing phase."
     ),
     page_cards(
-      # First row - Small cards
-      tags$div(
-        class = "row g-2",
-        tags$div(
-          class = "col-12",
-          tags$div(
-            class = "row g-3", # Nested row for small cards
-            small_card(
-              title = "Number of submissions",
-              plot = dplot()  #homecard_ts_plot_memo(peskas.malawi.portal::homecards_plots$submissions, y_col = "N. submissions")
-            ),
-            small_card(
-              title = "Vessels surveyed",
-              plot = dplot()# homecard_ts_plot_memo(peskas.malawi.portal::homecards_plots$vessels, y_col = "Vessels surveyed")
-            ),
-            small_card(
-              title = "Catches recorded",
-              plot = dplot()#homecard_ts_plot_memo(peskas.malawi.portal::homecards_plots$catches, y_col = "Catches recorded")
-            )
-          )
-        )
-      ),
       # Second row - Map
       tags$div(
         class = "row g-2",
         tags$div(
           class = "col-12",
-          mod_hex_map_ui("hex_map")
+          mod_heatmap_ui("heatmap")
         )
       ),
       # Third row - District summary table
@@ -69,16 +47,16 @@ tab_home_content <- function() {
           card(
             title = "Districts summary",
             tooltip = "
-              <p>This table shows the average values per fishing trip for each district:</p>
-              <ul class='mb-0'>
-                <li>Catch: Average catch per trip (kg)</li>
-                <li>CPUE: Average catch per fisher per hour (kg/fisher/hr)</li>
-                <li>Catch Value: Average catch value per trip</li>
-                <li>Price per kg: Average price per kilogram</li>
-                <li>N. fishers: Average number of fishers per trip</li>
-                <li>Trip length: Average trip duration (hrs)</li>
-              </ul>",
-            # mod_district_summary_table_ui("district_table")
+          <p>This table shows the average values per fishing trip for each landing site:</p>
+          <ul class='mb-0'>
+            <li>Catch: Average catch per trip (kg)</li>
+            <li>CPUE: Average catch per fisher per hour (kg/fisher/hr)</li>
+            <li>Trip length: Average trip duration (hrs)</li>
+            <li>Price per kg: Average price per kilogram</li>
+            <li>Catch Value: Average catch value per trip</li>
+          </ul>",
+            placement = "right",
+            mod_district_summary_table_ui("district_table")
           )
         )
       )

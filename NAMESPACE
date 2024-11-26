@@ -2,7 +2,7 @@
 
 export("%>%")
 export(generate_edit_url)
-export(hexagon_map)
+export(heatmap_map)
 export(homecard_ts_plot_memo)
 export(inline_li_link)
 export(read_config)

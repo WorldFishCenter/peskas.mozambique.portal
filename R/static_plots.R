@@ -75,7 +75,7 @@ homecard_ts_plot_memo <- memoise::memoise(homecard_ts_plot)
 
 
 
-dplot <- function(){
+dplot <- function() {
   dummy_plot <-
     apexcharter::apexchart() %>%
     apexcharter::ax_chart(type = "bar") %>%
@@ -89,3 +89,35 @@ dplot <- function(){
       categories = LETTERS[1:5]
     )
 }
+
+taxa_barchart <- function(data = NULL) {
+  apexcharter::apex(
+    data = data,
+    type = "bar",
+    mapping = apexcharter::aes(x = landing_site, y = catch_percent, fill = catch_taxon),
+    height = 500
+  ) %>%
+    # apexcharter::ax_tooltip(
+    #  shared = FALSE,
+    #  fillSeriesColor = TRUE
+    # ) %>%
+    apexcharter::ax_chart(
+      stacked = TRUE
+    ) %>%
+    apexcharter::ax_colors(viridisLite::viridis(15, alpha = 0.65)) %>%
+    apexcharter::ax_xaxis(
+      title = list(
+        text = "Landing Site"
+      )
+    ) %>%
+    apexcharter::ax_xaxis(
+      max = 100, # Set the y-axis limit to 100
+      labels = list(
+        formatter = htmlwidgets::JS("function(value) { return value + '%'; }") # Add percentage to labels
+      ),
+      title = list(
+        text = "Catch Composition"
+      )
+    )
+}
+

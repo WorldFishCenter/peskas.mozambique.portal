@@ -18,15 +18,15 @@ tab_catch_content <- function() {
         tags$div(
           class = "col-lg-8",
           card(
-            title = "Catch Time Series",
-            #mod_ts_ui(id = "catch_ts")
+            title = "Catch composition",
+            taxa_barchart(data = peskas.mozambique.portal::taxa_summary)
           )
         ),
         tags$div(
           class = "col-lg-4",
           card(
             title = "Catch seasonal distribution",
-           # mod_spider_ui("catch_spider")
+            # mod_spider_ui("catch_spider")
           )
         )
       ),
@@ -47,7 +47,7 @@ tab_catch_content <- function() {
       <li>Values are averaged across all fishing trips for the selected district</li>
     </ul>
   ",
-            #mod_treemap_ui("catch_treemap")
+            mod_treemap_ui(id = "catch_treemap")
           )
         )
       )
