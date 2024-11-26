@@ -1,0 +1,95 @@
+on:
+  push:
+    branches:
+      - main
+      - master
+  schedule:
+    - cron: '0 1 * * 1'
+
+name: Deploy to Google Cloud Run
+
+jobs:
+  update-data:
+    name: Update dashboard data
+    runs-on: ubuntu-latest
+    container: rocker/verse:4.1.0
+    env:
+      R_CONFIG_ACTIVE: production
+      GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
+      MONGODB_CONNECTION_STRING: ${{ secrets.MONGODB_CONNECTION_STRING }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - run: git config --global --add safe.directory /__w/peskas.mozambique.portal/peskas.mozambique.portal
+      - name: Update data
+        run: |
+          Rscript -e 'install.packages(c("remotes"))'
+          Rscript -e 'remotes::install_cran(c("config", "mongolite", "tidyr", "lubridate", "dplyr"), quick = TRUE)'
+          Rscript -e 'source("update_data.R")'
+      - name: Commit changes to package data
+        uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          file_pattern: data/*
+
+  deploy:
+    name: Deploy Shiny app
+    needs: update-data
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      # Create vendor directory and download dependencies
+      - name: Setup vendor directory
+        run: |
+          mkdir -p www/vendor
+          curl -L -o www/vendor/apexcharts.min.js https://cdn.jsdelivr.net/npm/apexcharts@3.26.2/dist/apexcharts.min.js
+          curl -L -o www/vendor/jquery.min.js https://code.jquery.com/jquery-3.6.0.min.js
+          curl -L -o www/vendor/tabler.min.css https://unpkg.com/@tabler/core@1.0.0-beta21/dist/css/tabler.min.css
+          curl -L -o www/vendor/tabler.min.js https://unpkg.com/@tabler/core@1.0.0-beta21/dist/js/tabler.min.js
+          curl -L -o www/vendor/deck.min.js https://cdn.jsdelivr.net/npm/deck.gl@9.0.34/dist/index.js
+
+      - name: Set up Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v0.6.1
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          export_default_credentials: true
+
+      - name: Authorize Docker push
+        run: gcloud auth configure-docker europe-west1-docker.pkg.dev
+
+      - name: Build and push app container
+        env:
+          GOOGLE_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
+        run: |
+          docker build -t europe-west1-docker.pkg.dev/${GOOGLE_PROJECT}/peskas-mozambique-shiny/${GITHUB_SHA} -f prod.Dockerfile .
+          docker push europe-west1-docker.pkg.dev/${GOOGLE_PROJECT}/peskas-mozambique-shiny/${GITHUB_SHA}
+
+      - name: Deploy to Cloud Run
+        id: deploy
+        uses: google-github-actions/deploy-cloudrun@v0.10.3
+        with:
+          service: peskas-mozambique-shiny
+          image: europe-west1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/peskas-mozambique-shiny/${{ github.sha }}
+          env_vars: |
+            R_CONFIG_ACTIVE=production
+            ASSET_ID=${{ secrets.ASSET_ID }}
+            KOBO_TOKEN=${{ secrets.KOBO_TOKEN }}
+            MAPBOX_TOKEN=${{ secrets.MAPBOX_TOKEN }}
+            VAL_USER=${{ secrets.VAL_USER }}
+            VAL_PASS=${{ secrets.VAL_PASS }}
+          flags: >-
+            --cpu=2
+            --memory=4Gi
+            --concurrency=40
+            --max-instances=10
+            --min-instances=2
+            --timeout=300
+            --cpu-boost
+            --no-cpu-throttling
+            --session-affinity
+          region: europe-west1
+
+      - name: Show Output
+        run: echo "App deployed at ${{ steps.deploy.outputs.url }}"
