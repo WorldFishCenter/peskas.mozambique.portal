@@ -74,11 +74,7 @@ jobs:
           image: europe-west1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/peskas-mozambique-shiny/${{ github.sha }}
           env_vars: |
             R_CONFIG_ACTIVE=production
-            ASSET_ID=${{ secrets.ASSET_ID }}
-            KOBO_TOKEN=${{ secrets.KOBO_TOKEN }}
             MAPBOX_TOKEN=${{ secrets.MAPBOX_TOKEN }}
-            VAL_USER=${{ secrets.VAL_USER }}
-            VAL_PASS=${{ secrets.VAL_PASS }}
           flags: >-
             --cpu=2
             --memory=4Gi
