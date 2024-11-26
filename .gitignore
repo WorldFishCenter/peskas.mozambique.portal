@@ -1,0 +1,15 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+
+/dev
+*.DS_Store
+inst/app/www/tabler.min.css
+inst/app/www/tabler.min.js
+
+auth/**
+
+load_tests/
+
+Rplots.pdf
