@@ -66,6 +66,10 @@ aggregated_catch <-
     catch_kg = sum(catch_gr, na.rm = T) / 1000
   )
 
+#tab_data <-
+#  valid_data %>%
+#  dplyr::group_by(district, landing_site) %>%
+
 we <-
   valid_data %>%
   dplyr::select(submission_id, catch_outcome, landing_site, landing_date, habitat, gear, catch_price) %>%
