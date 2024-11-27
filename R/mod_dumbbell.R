@@ -12,7 +12,7 @@ mod_dumbbell_ui <- function(id) {
 mod_dumbbell_server <- function(id, data = NULL) {
   moduleServer(id, function(input, output, session) {
     output$dumbbell <- apexcharter::renderApexchart({
-      apexcharter::apex(data, aes(catch_taxon, x = q25, xend = q75), type = "dumbbell") %>%
+      apexcharter::apex(data, apexcharter::aes(catch_taxon, x = q25, xend = q75), type = "dumbbell") %>%
         apexcharter::ax_plotOptions(
           bar = apexcharter::bar_opts(
             dumbbellColors = list(list("#C9C5BA", "#70163C"))
