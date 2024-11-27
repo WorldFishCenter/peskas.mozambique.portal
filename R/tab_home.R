@@ -1,4 +1,4 @@
-#' Generate content for the home tab of the Malawi small scale fisheries dashboard
+#' Generate content for the home tab of the Mozambique small scale fisheries dashboard
 #'
 #' @description
 #' This function creates the layout and content for the home tab of the dashboard.
@@ -17,7 +17,7 @@
 #' - district_summary_table: Generates a summary table of district data
 #'
 #' @note
-#' Requires access to peskas.malawi.portal data and a valid Mapbox token
+#' Requires access to peskas.mozambique.portal data and a valid Mapbox token
 #'
 #' export
 tab_home_content <- function() {
@@ -28,7 +28,7 @@ tab_home_content <- function() {
     ),
     alert(
       title = "Beta Version",
-      message = "This application is currently in beta testing phase."
+      message = "This application is currently in beta testing phase. Some features and data may be incomplete or incorrect."
     ),
     page_cards(
       # Second row - Map

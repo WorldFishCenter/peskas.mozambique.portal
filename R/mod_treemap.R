@@ -11,7 +11,7 @@ mod_treemap_ui <- function(id) {
 #' @noRd
 mod_treemap_server <- function(id, data = NULL, type = NULL, colors = NULL) {
   moduleServer(id, function(input, output, session) {
-    suffix <- if (type == "cpue") " kg/hrs" else " MWK/hrs"
+    suffix <- if (type == "cpue") " kg/hrs" else " MZM/hrs"
 
     output$treemap <- apexcharter::renderApexchart({
       apexcharter::apexchart() %>%

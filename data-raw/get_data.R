@@ -177,3 +177,41 @@ treeplot_data <- purrr::map(base_data, function(dataset) {
 
 # Save the data
 usethis::use_data(treeplot_data, overwrite = TRUE)
+
+
+
+
+top_11_taxa <-
+  valid_data %>%
+  dplyr::filter(!catch_outcome == "0") %>%
+  dplyr::select(district, landing_site, catch_df) %>%
+  tidyr::unnest(catch_df, keep_empty = T) %>%
+  dplyr::group_by(catch_taxon) %>%
+  dplyr::summarise(catch_kg = sum(catch_gr, na.rm = T) / 1000) %>%
+  dplyr::arrange(-catch_kg, .by_group = T) %>%
+  dplyr::slice_head(n = 11) %>%
+  dplyr::filter(!catch_taxon == "Other") %>%
+  dplyr::pull(catch_taxon)
+
+length_data <-
+  valid_data %>%
+  dplyr::filter(!catch_outcome == "0") %>%
+  tidyr::unnest(catch_df, keep_empty = T) %>%
+  dplyr::filter(catch_taxon %in% top_11_taxa) %>%
+  dplyr::mutate(catch_taxon = dplyr::case_when(
+    catch_taxon == "Tuna/Bonito/Other Mackerel" ~ "Tuna/Bonito",
+    catch_taxon == "Jacks/Trevally/Other Scad" ~ "Scads",
+    TRUE ~ catch_taxon
+  )) %>%
+  dplyr::select(catch_taxon, counts, length_class) %>%
+  dplyr::filter(counts > 0, length_class > 5) %>%
+  dplyr::group_by(catch_taxon) %>%
+  dplyr::summarise(
+    q25 = quantile(length_class, probs = 0.25, weights = counts),
+    q75 = quantile(length_class, probs = 0.75, weights = counts),
+    min = min(length_class, na.rm = T),
+    max = max(length_class, na.rm = T)
+  ) %>%
+  dplyr::arrange(-q75)
+
+usethis::use_data(length_data, overwrite = TRUE)

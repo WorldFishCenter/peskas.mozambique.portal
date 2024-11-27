@@ -2,7 +2,7 @@
 % Please edit documentation in R/tab_home.R
 \name{tab_home_content}
 \alias{tab_home_content}
-\title{Generate content for the home tab of the Malawi small scale fisheries dashboard}
+\title{Generate content for the home tab of the Mozambique small scale fisheries dashboard}
 \usage{
 tab_home_content()
 }
@@ -24,7 +24,7 @@ The function uses the following components:
 - district_summary_table: Generates a summary table of district data
 }
 \note{
-Requires access to peskas.malawi.portal data and a valid Mapbox token
+Requires access to peskas.mozambique.portal data and a valid Mapbox token
 
 export
 }

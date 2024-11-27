@@ -12,8 +12,10 @@ app_server <- function(input, output, session) {
   mod_heatmap_server("heatmap")
   mod_district_summary_table_server("district_table", data = peskas.mozambique.portal::tab_data)
 
-  mod_treemap_server(id = "catch_treemap", data = peskas.mozambique.portal::treeplot_data$cpue , type = "cpue", colors = habitat_colors)
+  barchart_taxa_server(id = "taxa_barchart", data = peskas.mozambique.portal::taxa_summary)
+  mod_dumbbell_server(id = "length_dumbbell", data = peskas.mozambique.portal::length_data)
+  mod_treemap_server(id = "catch_treemap", data = peskas.mozambique.portal::treeplot_data$cpue, type = "cpue", colors = habitat_colors)
 
-  mod_treemap_server(id = "revenue_treemap", data = peskas.mozambique.portal::treeplot_data$rpue , type = "rpue", colors = habitat_colors)
 
+  mod_treemap_server(id = "revenue_treemap", data = peskas.mozambique.portal::treeplot_data$rpue, type = "rpue", colors = habitat_colors)
 }

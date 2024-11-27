@@ -11,7 +11,7 @@
 read_config <- function() {
   pars <- config::get(
     config = Sys.getenv("R_CONFIG_ACTIVE", "default"),
-    file = system.file("config.yml", package = "peskas.malawi.portal")
+    file = system.file("config.yml", package = "peskas.mozambique.portal")
   )
   pars
 }

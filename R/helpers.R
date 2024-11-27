@@ -163,7 +163,7 @@ add_js_dependencies <- function() {
   htmltools::htmlDependency(
     name = "hexagon-map",
     version = "1.0.0",
-    src = system.file("app/www", package = "peskas.malawi.portal"),
+    src = system.file("app/www", package = "peskas.mozambique.portal"),
     script = "js/hexagon-tooltips.js",
     stylesheet = "css/tooltip-styles.css"
   )

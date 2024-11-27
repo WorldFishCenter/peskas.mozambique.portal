@@ -25,7 +25,7 @@ mod_district_summary_table_server <- function(id, data, color_pal = c("#ffffd9",
       MZN = list(rate = 1, symbol = "MZN", decimals = 2),
       USD = list(rate = 0.016, symbol = "$", decimals = 2),
       EUR = list(rate = 0.015, symbol = "\u20AC", decimals = 2),
-      GBP = list(rate = 0.013, symbol = "\u00A3", decimals = 2)
+      GBP = list(rate = 0.012, symbol = "\u00A3", decimals = 2)
     )
 
     # Convert the data reactively based on selected currency

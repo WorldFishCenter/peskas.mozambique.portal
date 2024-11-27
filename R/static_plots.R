@@ -121,3 +121,16 @@ taxa_barchart <- function(data = NULL) {
     )
 }
 
+
+dumbbell_length <- function(data = NULL) {
+  apexcharter::apex(data, aes(catch_taxon, x = q25, xend = q75), type = "dumbbell") %>%
+    apexcharter::ax_plotOptions(
+      bar = apexcharter::bar_opts(
+        dumbbellColors = list(list("#C9C5BA", "#70163C"))
+      )
+    ) %>%
+    apexcharter::ax_colors("#BABABA") %>%
+    apexcharter::ax_labs(
+      x = "Length (cm)"
+    )
+}

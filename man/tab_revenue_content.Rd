@@ -2,7 +2,7 @@
 % Please edit documentation in R/tab_revenue.R
 \name{tab_revenue_content}
 \alias{tab_revenue_content}
-\title{Generate content for the revenue tab of the Malawi small scale fisheries dashboard}
+\title{Generate content for the revenue tab of the Mozambique small scale fisheries dashboard}
 \usage{
 tab_revenue_content()
 }

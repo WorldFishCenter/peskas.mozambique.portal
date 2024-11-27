@@ -109,35 +109,3 @@ map_card <- function(map, height = "400px") {
   )
 }
 
-
-#' Create district selector
-#'
-#' @param id ID for the selector (e.g., "catch-district" or "revenue-district")
-#' @param data Dataset containing the sample_district column
-#' @param width Optional width for the selector container (default: "col-md-4 col-lg-3")
-#'
-#' @return A div containing the styled district selector
-#' @noRd
-district_selector <- function(id, data = peskas.malawi.portal::timeseries_month, width = "col-md-4 col-lg-3") {
-  tags$div(
-    class = "container-xl mb-3",
-    tags$div(
-      class = "row",
-      tags$div(
-        class = width,
-        selectInput(
-          inputId = id,
-          label = "Select District",
-          choices = c(
-            "All districts",
-            setdiff(
-              unique(data$sample_district),
-              "All districts"
-            )
-          ),
-          selected = "All districts"
-        )
-      )
-    )
-  )
-}
