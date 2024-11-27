@@ -9,7 +9,7 @@ barchart_taxa_ui <- function(id) {
 
 #' Barchart Server Function
 #' @noRd
-barchart_taxa_server <- function(id, data = NULL) {
+barchart_taxa_server <- function(id, data = NULL, colors = NULL) {
   moduleServer(id, function(input, output, session) {
     output$barchart_taxa <- apexcharter::renderApexchart({
       apexcharter::apex(
@@ -25,7 +25,7 @@ barchart_taxa_server <- function(id, data = NULL) {
         apexcharter::ax_chart(
           stacked = TRUE
         ) %>%
-        apexcharter::ax_colors(viridisLite::viridis(15, alpha = 0.65)) %>%
+        apexcharter::ax_colors(colors) %>%
         apexcharter::ax_xaxis(
           title = list(
             text = "Landing Site"
