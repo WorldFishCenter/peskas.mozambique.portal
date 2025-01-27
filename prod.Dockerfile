@@ -22,7 +22,6 @@ RUN cd /srv/shiny-server/www/vendor \
     && curl -L -o jquery.min.js https://code.jquery.com/jquery-3.6.0.min.js \
     && curl -L -o tabler.min.css https://unpkg.com/@tabler/core@1.0.0-beta21/dist/css/tabler.min.css \
     && curl -L -o tabler.min.js https://unpkg.com/@tabler/core@1.0.0-beta21/dist/js/tabler.min.js \
-    && curl -L -o deck.min.js https://cdn.jsdelivr.net/npm/deck.gl@9.0.34/dist/index.js
 
 # Extra R packages
 RUN install2.r --error --skipinstalled -n 2 \
@@ -64,6 +63,9 @@ RUN Rscript -e 'remotes::install_local("/srv/shiny-server", dependencies = FALSE
 # Copy configuration and app entry point
 COPY shiny.config /etc/shiny-server/shiny-server.conf
 COPY app.R /srv/shiny-server/app.R
+
+# Create shiny user and group
+RUN groupadd -r shiny && useradd -r -g shiny shiny
 
 # Set proper permissions
 RUN chown -R shiny:shiny /srv/shiny-server \
