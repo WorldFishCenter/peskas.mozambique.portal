@@ -93,7 +93,7 @@ map_data <-
   as.data.frame()
 
 mozamap <-
-  sf::read_sf(system.file("palma_area.geojson", package = "peskas.mozambique.portal")) |>
+  sf::read_sf("inst/palma_area.geojson") |>
   dplyr::filter(ADM2_PT %in% c("Mocimboa Da Praia", "Palma"))
 
 points_sf <- 
