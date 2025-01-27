@@ -8,7 +8,7 @@ ENV SHINY_LOG_LEVEL='INFO'
 RUN apt-get update && apt-get install --no-install-recommends -y \
     curl \
     ca-certificates \
-    libudunits2-0 \  # Added dependency
+    libudunits2-0 \
     && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Create necessary directories
@@ -48,7 +48,7 @@ RUN install2.r --error --skipinstalled -n 2 \
 
 # Install system dependencies for R packages that require them
 RUN apt-get update && apt-get install --no-install-recommends -y \
-    libudunits2-dev \  # Development headers for units package
+    libudunits2-dev \
     && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Copy application files

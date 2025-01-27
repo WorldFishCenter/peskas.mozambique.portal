@@ -12,7 +12,7 @@ jobs:
   update-data:
     name: Update dashboard data
     runs-on: ubuntu-latest
-    container: rocker/verse:4.1.0
+    container: rocker/geospatial:4
     env:
       R_CONFIG_ACTIVE: production
       GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
