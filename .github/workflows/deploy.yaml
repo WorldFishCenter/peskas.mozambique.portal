@@ -6,6 +6,8 @@ on:
   schedule:
     - cron: '0 1 * * 1'
 
+name: Deploy to Google Cloud Run
+
 jobs:
   update-data:
     name: Update dashboard data
@@ -27,39 +29,19 @@ jobs:
         run: |
           apt-get update
           apt-get install -y libudunits2-0 libudunits2-dev
-          # Install other dependencies if necessary
 
-      - name: Print R Package Versions Before Installation
-        run: |
-          Rscript -e 'if ("config" %in% rownames(installed.packages())) cat("config package version before install:", packageVersion("config"), "\n") else cat("config package not installed yet.\n")'
-          Rscript -e 'if ("yaml" %in% rownames(installed.packages())) cat("yaml package version before install:", packageVersion("yaml"), "\n") else cat("yaml package not installed yet.\n")'
-
-      - name: Install R Packages Cleanly
-        run: |
-          mkdir -p $HOME/R_libs
-          Rscript -e 'install.packages("remotes", lib = "$HOME/R_libs", repos = "https://cloud.r-project.org")'
-          Rscript -e 'remotes::install_cran("config", lib = "$HOME/R_libs", repos = "https://cloud.r-project.org", dependencies=TRUE)'
-          Rscript -e 'remotes::install_cran(c("mongolite", "tidyr", "lubridate", "dplyr"), lib = "$HOME/R_libs", repos = "https://cloud.r-project.org", dependencies=TRUE)'
-        env:
-          R_LIBS_USER: $HOME/R_libs
-
-      - name: Print R Package Versions After Installation
-        run: |
-          Rscript -e 'cat("config package version after install:", packageVersion("config"), "\n")'
-          Rscript -e 'cat("yaml package version after install:", packageVersion("yaml"), "\n")'
-
-      - name: Configure Git Safe Directory
-        run: git config --global --add safe.directory /__w/peskas.mozambique.portal/peskas.mozambique.portal
+      - run: git config --global --add safe.directory /__w/peskas.mozambique.portal/peskas.mozambique.portal
 
       - name: Update data
         run: |
-          Rscript -e 'source("get_data.R")'
+          Rscript -e 'install.packages(c("remotes"))'
+          Rscript -e 'remotes::install_cran(c("config", "mongolite", "tidyr", "lubridate", "dplyr"), quick = TRUE)'
+          Rscript -e 'source("update_data.R")'
 
       - name: Commit changes to package data
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
           file_pattern: data/*
-
 
   deploy:
     name: Deploy Shiny app
