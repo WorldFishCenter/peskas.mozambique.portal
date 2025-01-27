@@ -13,21 +13,25 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
 # Install R packages in one layer to leverage Docker caching
 RUN install2.r --error --skipinstalled -n 4 \
     remotes \
-    apexcharter \
-    config \
     dplyr \
-    golem \
-    deckgl \
     reactable \
-    reactablefmtr \
-    shiny \
-    rlang \
-    scales \
-    htmlwidgets \
+    sf \
+    htmltools \
     memoise \
+    apexcharter \
+    reactablefmtr \
+    magrittr \
+    scales \
+    rlang \
     purrr \
     viridisLite \
-    V8
+    config \
+    httr2 \
+    golem \
+    shinyjs \
+    V8 \
+    leaflet \
+    leaflet.extras
 
 
 # Final stage

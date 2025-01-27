@@ -28,7 +28,7 @@ RUN install2.r --error --skipinstalled -n 2 \
     remotes \
     dplyr \
     reactable \
-    deckgl \
+    sf \
     htmltools \
     memoise \
     apexcharter \
@@ -42,7 +42,10 @@ RUN install2.r --error --skipinstalled -n 2 \
     httr2 \
     golem \
     shinyjs \
-    V8
+    V8 \
+    leaflet \
+    leaflet.extras
+
 
 
 # Copy application files
