@@ -21,7 +21,7 @@ RUN cd /srv/shiny-server/www/vendor \
     && curl -L -o apexcharts.min.js https://cdn.jsdelivr.net/npm/apexcharts@3.26.2/dist/apexcharts.min.js \
     && curl -L -o jquery.min.js https://code.jquery.com/jquery-3.6.0.min.js \
     && curl -L -o tabler.min.css https://unpkg.com/@tabler/core@1.0.0-beta21/dist/css/tabler.min.css \
-    && curl -L -o tabler.min.js https://unpkg.com/@tabler/core@1.0.0-beta21/dist/js/tabler.min.js \
+    && curl -L -o tabler.min.js https://unpkg.com/@tabler/core@1.0.0-beta21/dist/js/tabler.min.js
 
 # Extra R packages
 RUN install2.r --error --skipinstalled -n 2 \
