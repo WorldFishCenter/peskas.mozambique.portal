@@ -30,7 +30,7 @@ mdb_collection_pull <- function(connection_string = NULL, collection_name = NULL
 }
 
 
-valid_data <-
+validated_data <-
   mdb_collection_pull(
     connection_string = config$storage$mongodb$connection_string,
     collection_name = config$storage$mongodb$collection_name$validated,
@@ -38,18 +38,88 @@ valid_data <-
   ) %>%
   dplyr::as_tibble()
 
+valid_data_ids <-
+  validated_data |>
+  dplyr::select(submission_id) |>
+  dplyr::pull() |>
+  unique()
+
+valid_data <-
+  mdb_collection_pull(
+    connection_string = config$storage$mongodb$connection_string,
+    collection_name = config$storage$mongodb$collection_name$preprocessed,
+    db_name = config$storage$mongodb$database_name
+  ) %>%
+  dplyr::as_tibble() |>
+  dplyr::filter(submission_id %in% valid_data_ids)
+
+
+
+ts_data <-
+  valid_data |>
+  tidyr::unnest(catch_df, keep_empty = TRUE) %>%
+  dplyr::select(submission_id, landing_date, district, catch_gr, catch_price) %>%
+  dplyr::filter(catch_gr > 0) |>
+  dplyr::mutate(
+    date = lubridate::floor_date(landing_date, unit = "month") # Round dates upfront
+  ) |>
+  dplyr::group_by(district, date) |>
+  dplyr::summarise(
+    mean_catch_kg = mean(catch_gr) / 1000,
+    mean_catch_price = mean(catch_price),
+    .groups = "drop" # Drop grouping after summarization
+  ) |>
+  tidyr::complete(
+    district,
+    date,
+    fill = list(mean_catch_kg = NA_real_, mean_catch_price = NA_real_) # Fill all metrics
+  ) |>
+  tidyr::pivot_longer(
+    cols = starts_with("mean_"), # Pivot only mean-related columns
+    names_to = "metric",
+    values_to = "value"
+  ) |>
+  dplyr::mutate(
+    date_label = format(date, "%b %y") # Add a preformatted date label for plotting
+  )
+
+usethis::use_data(ts_data, overwrite = T)
+
 
 map_data <-
   valid_data %>%
-  dplyr::select(lat, lon)
+  dplyr::select(lat, lon) |> 
+  na.omit() |> 
+  as.data.frame()
+
+mozamap <-
+  sf::read_sf(system.file("palma_area.geojson", package = "peskas.mozambique.portal")) |>
+  dplyr::filter(ADM2_PT %in% c("Mocimboa Da Praia", "Palma"))
+
+points_sf <- 
+  map_data %>%
+sf::st_as_sf(
+  coords = c("lon", "lat"),
+  crs = sf::st_crs(mozamap)
+)
+
+# Count points in each polygon and join back to mozamap
+mozamap_with_counts <- 
+mozamap %>%
+dplyr::mutate(
+  n_observations = lengths(sf::st_intersects(geometry, points_sf))
+)
 
 usethis::use_data(map_data, overwrite = T)
+usethis::use_data(mozamap_with_counts, overwrite = T)
+
 
 taxa_df <-
   valid_data %>%
   dplyr::select(submission_id, catch_df) %>%
   tidyr::unnest(catch_df, keep_empty = T) %>%
   dplyr::select(-c("n", "length_class", "counts", "catch_estimate":"weight_bucket")) %>%
+  dplyr::filter(catch_gr > 0) |>
   dplyr::group_by(submission_id, catch_taxon) %>%
   dplyr::summarise(catch_gr = sum(catch_gr, na.rm = T)) %>%
   dplyr::ungroup()
@@ -61,6 +131,7 @@ aggregated_catch <-
   valid_data %>%
   dplyr::select(submission_id, catch_df) %>%
   tidyr::unnest(catch_df, keep_empty = T) %>%
+  dplyr::filter(catch_gr > 0) |>
   dplyr::group_by(submission_id) %>%
   dplyr::summarise(
     catch_kg = sum(catch_gr, na.rm = T) / 1000
@@ -93,6 +164,7 @@ top_6_taxa <-
   dplyr::filter(!catch_outcome == "0") %>%
   dplyr::select(district, landing_site, catch_df) %>%
   tidyr::unnest(catch_df, keep_empty = T) %>%
+  dplyr::filter(catch_gr > 0) |>
   dplyr::group_by(catch_taxon) %>%
   dplyr::summarise(catch_kg = sum(catch_gr, na.rm = T) / 1000) %>%
   dplyr::arrange(-catch_kg, .by_group = T) %>%
@@ -105,6 +177,7 @@ taxa_summary <-
   dplyr::filter(!catch_outcome == "0") %>%
   dplyr::select(district, landing_site, catch_df) %>%
   tidyr::unnest(catch_df, keep_empty = T) %>%
+  dplyr::filter(catch_gr > 0) |>
   dplyr::mutate(catch_taxon = ifelse(catch_taxon %in% top_6_taxa, catch_taxon, "Other")) %>%
   dplyr::group_by(landing_site) %>%
   dplyr::mutate(tot_catch_kg = sum(catch_gr, na.rm = T) / 1000) %>%
@@ -123,8 +196,9 @@ taxa_summary <-
 
 usethis::use_data(taxa_summary, overwrite = T)
 
-
-base_data <- valid_data %>%
+# gear habitat
+base_data <-
+  valid_data %>%
   dplyr::left_join(aggregated_catch, by = "submission_id") %>%
   dplyr::filter(!catch_outcome == "0" & catch_kg > 0, tot_fishers != 0 & trip_duration != 0) %>%
   dplyr::mutate(
@@ -186,6 +260,7 @@ top_11_taxa <-
   dplyr::filter(!catch_outcome == "0") %>%
   dplyr::select(district, landing_site, catch_df) %>%
   tidyr::unnest(catch_df, keep_empty = T) %>%
+  dplyr::filter(catch_gr > 0) |>
   dplyr::group_by(catch_taxon) %>%
   dplyr::summarise(catch_kg = sum(catch_gr, na.rm = T) / 1000) %>%
   dplyr::arrange(-catch_kg, .by_group = T) %>%
@@ -197,6 +272,7 @@ length_data <-
   valid_data %>%
   dplyr::filter(!catch_outcome == "0") %>%
   tidyr::unnest(catch_df, keep_empty = T) %>%
+  dplyr::filter(catch_gr > 0) |>
   dplyr::filter(catch_taxon %in% top_11_taxa) %>%
   dplyr::mutate(catch_taxon = dplyr::case_when(
     catch_taxon == "Tuna/Bonito/Other Mackerel" ~ "Tuna/Bonito",

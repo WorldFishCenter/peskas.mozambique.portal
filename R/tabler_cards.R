@@ -108,4 +108,3 @@ map_card <- function(map, height = "400px") {
     )
   )
 }
-

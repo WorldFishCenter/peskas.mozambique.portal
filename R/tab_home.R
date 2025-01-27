@@ -36,7 +36,7 @@ tab_home_content <- function() {
         class = "row g-2",
         tags$div(
           class = "col-12",
-          mod_heatmap_ui("heatmap")
+          mod_map_ui("leafmap")
         )
       ),
       # Third row - District summary table

@@ -94,7 +94,7 @@ taxa_barchart <- function(data = NULL) {
   apexcharter::apex(
     data = data,
     type = "bar",
-    mapping = apexcharter::aes(x = landing_site, y = catch_percent, fill = catch_taxon),
+    mapping = apexcharter::aes(x = .data$landing_site, y = .data$catch_percent, fill = .data$catch_taxon),
     height = 500
   ) %>%
     # apexcharter::ax_tooltip(
@@ -123,7 +123,7 @@ taxa_barchart <- function(data = NULL) {
 
 
 dumbbell_length <- function(data = NULL) {
-  apexcharter::apex(data, aes(catch_taxon, x = q25, xend = q75), type = "dumbbell") %>%
+  apexcharter::apex(data, apexcharter::aes(.data$catch_taxon, x = .data$q25, xend = .data$q75), type = "dumbbell") %>%
     apexcharter::ax_plotOptions(
       bar = apexcharter::bar_opts(
         dumbbellColors = list(list("#C9C5BA", "#70163C"))

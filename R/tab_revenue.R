@@ -19,6 +19,24 @@ tab_revenue_content <- function() {
     # district_selector("revenue-district"),
     page_cards(
       tags$div(
+        class = "row g-2",
+        tags$div(
+          class = "col-lg-12",
+          card(
+            title = "Revenue trends",
+            tooltip = "
+              <p>This visualization shows the temporal trends in catch metrics:</p>
+              <ul class='mb-0'>
+                <li>Bars show monthly averaged values for each district</li>
+                <li>Missing values are periods with no data collection</li>
+              </ul>
+            ",
+            mod_ts_ui(id = "revenue_ts")
+          )
+        )
+      ),
+      # Second row
+      tags$div(
         class = "row g-2"
       ),
       tags$div(

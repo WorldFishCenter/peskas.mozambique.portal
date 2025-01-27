@@ -15,7 +15,7 @@ barchart_taxa_server <- function(id, data = NULL, colors = NULL) {
       apexcharter::apex(
         data = data,
         type = "bar",
-        mapping = apexcharter::aes(x = landing_site, y = catch_percent, fill = catch_taxon),
+        mapping = apexcharter::aes(x = .data$landing_site, y = .data$catch_percent, fill = .data$catch_taxon),
         height = 500
       ) %>%
         # apexcharter::ax_tooltip(

@@ -1,106 +1,119 @@
-#' Heatmap Map UI Module
+#' Map UI Module
+#' @param id The module ID
 #' @noRd
-mod_heatmap_ui <- function(id) {
+mod_map_ui <- function(id) {
   ns <- NS(id)
 
-  # Define colors for the legend
+  tags$div(
+    class = "position-relative",
+    style = "height: 500px;",
+    leaflet::leafletOutput(ns("map"), height = "100%"),
+    map_info_panel(ns)
+  )
+}
+
+#' Map Server Module
+#' @param id The module ID
+#' @param data Data frame containing point data for heatmap
+#' @param map SF object with district boundaries
+#' @noRd
+mod_map_server <- function(id, data, polygons) {
+  moduleServer(id, function(input, output, session) {
+    shapes <- reactive({
+      polygons
+    })
+
+    output$map <- leaflet::renderLeaflet({
+      req(shapes())
+
+      leaflet::leaflet() %>%
+        leaflet::addProviderTiles("Stadia.AlidadeSmooth") %>%
+        leaflet.extras::addHeatmap(
+          data = data,
+          lng = ~lon,
+          lat = ~lat,
+          blur = 20,
+          max = 0.3,
+          radius = 15,
+          minOpacity = 0.6,
+          gradient = c(
+            "0" = "#440154", # Dark purple
+            "0.2" = "#414487", # Purple
+            "0.4" = "#2a788e", # Blue
+            "0.6" = "#22a884", # Green
+            "0.8" = "#7ad151", # Light green
+            "1.0" = "#fde725" # Yellow
+          )
+        ) %>%
+        leaflet::addPolygons(
+          data = shapes(),
+          fillColor = "transparent",
+          fillOpacity = 0,
+          color = "grey",
+          weight = 1.5,
+          opacity = 0.8,
+          popup = ~ paste(
+            "<b>District:</b>", ADM2_PT,
+            "<br><b>Province:</b>", ADM1_PT
+            #"<br><b>Total surveys:</b>", n_observations
+          ),
+          highlightOptions = leaflet::highlightOptions(
+            weight = 3.5,
+            color = "black",
+            opacity = 0.5,
+            fillOpacity = 0.1,
+            bringToFront = TRUE
+          )
+        ) %>%
+        leaflet::setView(
+          lng = 40.60337,
+          lat = -10.8123,
+          zoom = 9
+        )
+    })
+  })
+}
+
+#' Create info panel for map
+#' @noRd
+map_info_panel <- function(ns) {
+  # Viridis colors without alpha in the list
   colors <- list(
-    c(1, 152, 189),
-    c(73, 227, 206),
-    c(216, 254, 181),
-    c(254, 237, 177),
-    c(254, 173, 84),
-    c(209, 55, 78)
+    c(68, 1, 84), # Dark purple
+    c(65, 68, 135), # Purple
+    c(42, 120, 142), # Blue
+    c(34, 168, 132), # Green
+    c(122, 209, 81), # Light green
+    c(253, 231, 37) # Yellow
   )
 
-  # Create color styles for the legend
+  # Add alpha in the style string instead
   color_styles <- vapply(seq_along(colors), function(i) {
     sprintf(
-      "flex: 1; background-color: rgb(%s);",
+      "flex: 1; background-color: rgba(%s, 0.8);", # Adding alpha of 0.8 here
       paste(colors[[i]], collapse = ",")
     )
   }, character(1))
 
   tags$div(
-    class = "position-relative",
-    style = "height: 500px;",
-    map_card(
-      heatmap_map(
-        data = peskas.mozambique.portal::map_data
-      ),
-      height = "100%"
-    ),
-    map_info_panel(ns, color_styles)
-  )
-}
-
-#' Heatmap Map Server Module
-#' @noRd
-mod_heatmap_server <- function(id) {
-  moduleServer(id, function(input, output, session) {
-    # Empty server since we removed interactive features
-  })
-}
-
-#' Create a heatmap using deckgl
-#' @param data A dataframe containing lat/lon coordinates
-#' @return A deckgl object
-#' @export
-heatmap_map <- function(data) {
-  # Center coordinates for Mozambique
-  center_lat <- -10.8123
-  center_lon <- 40.60337
-
-  # Create the map
-  deckgl::deckgl(
-    longitude = center_lon,
-    latitude = center_lat,
-    zoom = 8,
-    pitch = 0,
-    width = "100%",
-    height = "100%"
-  ) %>%
-    deckgl::add_basemap() %>%
-    deckgl::add_layer(
-      "HeatmapLayer",
-      data = data,
-      getPosition = ~ c(lon, lat),
-      radiusPixels = 30,
-      intensity = 1,
-      threshold = 0.1,
-      colorRange = list(
-        c(1, 152, 189),
-        c(73, 227, 206),
-        c(216, 254, 181),
-        c(254, 237, 177),
-        c(254, 173, 84),
-        c(209, 55, 78)
-      )
-    )
-}
-
-#' Create info panel for heatmap
-#' @noRd
-map_info_panel <- function(ns, color_styles) {
-  tags$div(
     class = "card shadow-sm",
-    style = "position: absolute; top: 1rem; right: 1rem; width: 250px; background: rgba(255,255,255,0.65); z-index: 1000; border: none; border-radius: 0.5rem;",
+    style = "position: absolute; top: 1rem; right: 1rem; width: 250px; background: rgba(255,255,255,0.85); z-index: 1000; border: none; border-radius: 0.5rem;",
     tags$div(
       class = "card-body p-3",
       tags$h3(
         class = "card-title mb-2",
         style = "font-size: 1.2rem; font-weight: 600;",
-        "Fishing Activity"
+        "Survey Activity"
       ),
       tags$h4(
         class = "mb-2",
         style = "font-size: 0.8rem;",
-        "This map shows survey activity density in Palma and Mocimboa districts"
+        "Distribution of survey data collection points across districts"
       ),
       tags$h4(
         class = "mb-2",
         style = "font-size: 0.9rem; font-weight: 600; color: #666;",
-        "Activity Density"
+        "Survey Density"
       ),
       tags$div(
         class = "mb-1",
@@ -112,8 +125,8 @@ map_info_panel <- function(ns, color_styles) {
       tags$div(
         class = "d-flex justify-content-between text-muted mb-3",
         style = "font-size: 0.8rem;",
-        tags$span("Low"),
-        tags$span("High")
+        tags$span("Sparse"),
+        tags$span("Dense")
       )
     )
   )

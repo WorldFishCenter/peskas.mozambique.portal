@@ -13,6 +13,7 @@ default:
       database_name: pipeline
       collection_name:
         validated: validated
+        preprocessed: preprocessed
   mapbox_token: !expr readLines('auth/mapbox-token')
   validation:
     user: !expr readLines('auth/username')

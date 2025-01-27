@@ -1,0 +1,683 @@
+diff --git a/DESCRIPTION b/DESCRIPTION
+index 18a20b6..425d0d4 100644
+--- a/DESCRIPTION
++++ b/DESCRIPTION
+@@ -8,16 +8,18 @@ License: GPL (>= 3)
+ Imports: 
+     apexcharter,
+     config,
+-    deckgl,
+     dplyr,
+     golem,
+     htmltools,
+     htmlwidgets,
++    leaflet,
++    leaflet.extras,
+     magrittr,
+     reactable,
+     reactablefmtr,
+     rlang,
+     scales,
++    sf,
+     shiny,
+     V8,
+     viridisLite
+diff --git a/NAMESPACE b/NAMESPACE
+index a7a445a..037d39b 100644
+--- a/NAMESPACE
++++ b/NAMESPACE
+@@ -2,7 +2,6 @@
+ 
+ export("%>%")
+ export(generate_edit_url)
+-export(heatmap_map)
+ export(homecard_ts_plot_memo)
+ export(inline_li_link)
+ export(read_config)
+@@ -11,6 +10,14 @@ export(tab_catch_content)
+ export(tab_revenue_content)
+ export(update_validation_status)
+ import(shiny)
++importFrom(apexcharter,apex)
++importFrom(apexcharter,ax_colors)
++importFrom(apexcharter,ax_legend)
++importFrom(apexcharter,ax_tooltip)
++importFrom(apexcharter,ax_yaxis)
++importFrom(apexcharter,renderApexchart)
++importFrom(dplyr,"%>%")
++importFrom(dplyr,filter)
+ importFrom(golem,with_golem_options)
+ importFrom(magrittr,"%>%")
+ importFrom(shiny,shinyApp)
+diff --git a/R/app_server.R b/R/app_server.R
+index de07a93..474188d 100644
+--- a/R/app_server.R
++++ b/R/app_server.R
+@@ -11,14 +11,32 @@ app_server <- function(input, output, session) {
+   taxa_palette <- viridisLite::turbo(15, alpha = 0.75)
+   taxa_colors <- taxa_palette %>% strtrim(width = 15)
+ 
++  #map_data <- stats::na.omit(as.data.frame(peskas.mozambique.portal::map_data))
++  #mozamap <-
++  #  sf::read_sf(system.file("palma_area.geojson", package = "peskas.mozambique.portal")) |>
++  #dplyr::filter(ADM2_PT %in% c("Mocimboa Da Praia", "Palma"))
+ 
+-  mod_heatmap_server("heatmap")
++  #points_sf <- map_data %>%
++  #sf::st_as_sf(
++  #  coords = c("lon", "lat"),
++  #  crs = sf::st_crs(mozamap)
++  #)
++
++# Count points in each polygon and join back to mozamap
++#mozamap_with_counts <- 
++#  mozamap %>%
++#  dplyr::mutate(
++#    n_observations = lengths(sf::st_intersects(geometry, points_sf))
++#  )
++
++  mod_map_server("leafmap", data = peskas.mozambique.portal::map_data, polygons = peskas.mozambique.portal::mozamap_with_counts)
+   mod_district_summary_table_server("district_table", data = peskas.mozambique.portal::tab_data)
+ 
++  mod_ts_server(id = "catch_ts", data = peskas.mozambique.portal::ts_data, metric_col = reactive("mean_catch_kg"), yaxis = "Mean catch per trip (kg)")
+   barchart_taxa_server(id = "taxa_barchart", data = peskas.mozambique.portal::taxa_summary, colors = taxa_colors)
+   mod_dumbbell_server(id = "length_dumbbell", data = peskas.mozambique.portal::length_data)
+   mod_treemap_server(id = "catch_treemap", data = peskas.mozambique.portal::treeplot_data$cpue, type = "cpue", colors = habitat_colors)
+ 
+-
++  mod_ts_server(id = "revenue_ts", data = peskas.mozambique.portal::ts_data, metric_col = reactive("mean_catch_price"), yaxis = "Mean revenue per trip (MZN)")
+   mod_treemap_server(id = "revenue_treemap", data = peskas.mozambique.portal::treeplot_data$rpue, type = "rpue", colors = habitat_colors)
+ }
+diff --git a/R/mod_barchart.R b/R/mod_barchart.R
+index 5ac8369..f826c56 100644
+--- a/R/mod_barchart.R
++++ b/R/mod_barchart.R
+@@ -15,7 +15,7 @@ barchart_taxa_server <- function(id, data = NULL, colors = NULL) {
+       apexcharter::apex(
+         data = data,
+         type = "bar",
+-        mapping = apexcharter::aes(x = landing_site, y = catch_percent, fill = catch_taxon),
++        mapping = apexcharter::aes(x = .data$landing_site, y = .data$catch_percent, fill = .data$catch_taxon),
+         height = 500
+       ) %>%
+         # apexcharter::ax_tooltip(
+diff --git a/R/mod_hex_map.R b/R/mod_hex_map.R
+index bd716e6..6480243 100644
+--- a/R/mod_hex_map.R
++++ b/R/mod_hex_map.R
+@@ -1,106 +1,119 @@
+-#' Heatmap Map UI Module
++#' Map UI Module
++#' @param id The module ID
+ #' @noRd
+-mod_heatmap_ui <- function(id) {
++mod_map_ui <- function(id) {
+   ns <- NS(id)
+ 
+-  # Define colors for the legend
+-  colors <- list(
+-    c(1, 152, 189),
+-    c(73, 227, 206),
+-    c(216, 254, 181),
+-    c(254, 237, 177),
+-    c(254, 173, 84),
+-    c(209, 55, 78)
+-  )
+-
+-  # Create color styles for the legend
+-  color_styles <- vapply(seq_along(colors), function(i) {
+-    sprintf(
+-      "flex: 1; background-color: rgb(%s);",
+-      paste(colors[[i]], collapse = ",")
+-    )
+-  }, character(1))
+-
+   tags$div(
+     class = "position-relative",
+     style = "height: 500px;",
+-    map_card(
+-      heatmap_map(
+-        data = peskas.mozambique.portal::map_data
+-      ),
+-      height = "100%"
+-    ),
+-    map_info_panel(ns, color_styles)
++    leaflet::leafletOutput(ns("map"), height = "100%"),
++    map_info_panel(ns)
+   )
+ }
+ 
+-#' Heatmap Map Server Module
++#' Map Server Module
++#' @param id The module ID
++#' @param data Data frame containing point data for heatmap
++#' @param map SF object with district boundaries
+ #' @noRd
+-mod_heatmap_server <- function(id) {
++mod_map_server <- function(id, data, polygons) {
+   moduleServer(id, function(input, output, session) {
+-    # Empty server since we removed interactive features
++    shapes <- reactive({
++      polygons
++    })
++
++    output$map <- leaflet::renderLeaflet({
++      req(shapes())
++
++      leaflet::leaflet() %>%
++        leaflet::addProviderTiles("Stadia.AlidadeSmooth") %>%
++        leaflet.extras::addHeatmap(
++          data = data,
++          lng = ~lon,
++          lat = ~lat,
++          blur = 20,
++          max = 0.3,
++          radius = 15,
++          minOpacity = 0.6,
++          gradient = c(
++            "0" = "#440154", # Dark purple
++            "0.2" = "#414487", # Purple
++            "0.4" = "#2a788e", # Blue
++            "0.6" = "#22a884", # Green
++            "0.8" = "#7ad151", # Light green
++            "1.0" = "#fde725" # Yellow
++          )
++        ) %>%
++        leaflet::addPolygons(
++          data = shapes(),
++          fillColor = "transparent",
++          fillOpacity = 0,
++          color = "grey",
++          weight = 1.5,
++          opacity = 0.8,
++          popup = ~ paste(
++            "<b>District:</b>", ADM2_PT,
++            "<br><b>Province:</b>", ADM1_PT
++            #"<br><b>Total surveys:</b>", n_observations
++          ),
++          highlightOptions = leaflet::highlightOptions(
++            weight = 3.5,
++            color = "black",
++            opacity = 0.5,
++            fillOpacity = 0.1,
++            bringToFront = TRUE
++          )
++        ) %>%
++        leaflet::setView(
++          lng = 40.60337,
++          lat = -10.8123,
++          zoom = 9
++        )
++    })
+   })
+ }
+ 
+-#' Create a heatmap using deckgl
+-#' @param data A dataframe containing lat/lon coordinates
+-#' @return A deckgl object
+-#' @export
+-heatmap_map <- function(data) {
+-  # Center coordinates for Mozambique
+-  center_lat <- -10.8123
+-  center_lon <- 40.60337
++#' Create info panel for map
++#' @noRd
++map_info_panel <- function(ns) {
++  # Viridis colors without alpha in the list
++  colors <- list(
++    c(68, 1, 84), # Dark purple
++    c(65, 68, 135), # Purple
++    c(42, 120, 142), # Blue
++    c(34, 168, 132), # Green
++    c(122, 209, 81), # Light green
++    c(253, 231, 37) # Yellow
++  )
+ 
+-  # Create the map
+-  deckgl::deckgl(
+-    longitude = center_lon,
+-    latitude = center_lat,
+-    zoom = 8,
+-    pitch = 0,
+-    width = "100%",
+-    height = "100%"
+-  ) %>%
+-    deckgl::add_basemap() %>%
+-    deckgl::add_layer(
+-      "HeatmapLayer",
+-      data = data,
+-      getPosition = ~ c(lon, lat),
+-      radiusPixels = 30,
+-      intensity = 1,
+-      threshold = 0.1,
+-      colorRange = list(
+-        c(1, 152, 189),
+-        c(73, 227, 206),
+-        c(216, 254, 181),
+-        c(254, 237, 177),
+-        c(254, 173, 84),
+-        c(209, 55, 78)
+-      )
++  # Add alpha in the style string instead
++  color_styles <- vapply(seq_along(colors), function(i) {
++    sprintf(
++      "flex: 1; background-color: rgba(%s, 0.8);", # Adding alpha of 0.8 here
++      paste(colors[[i]], collapse = ",")
+     )
+-}
++  }, character(1))
+ 
+-#' Create info panel for heatmap
+-#' @noRd
+-map_info_panel <- function(ns, color_styles) {
+   tags$div(
+     class = "card shadow-sm",
+-    style = "position: absolute; top: 1rem; right: 1rem; width: 250px; background: rgba(255,255,255,0.65); z-index: 1000; border: none; border-radius: 0.5rem;",
++    style = "position: absolute; top: 1rem; right: 1rem; width: 250px; background: rgba(255,255,255,0.85); z-index: 1000; border: none; border-radius: 0.5rem;",
+     tags$div(
+       class = "card-body p-3",
+       tags$h3(
+         class = "card-title mb-2",
+         style = "font-size: 1.2rem; font-weight: 600;",
+-        "Fishing Activity"
++        "Survey Activity"
+       ),
+       tags$h4(
+         class = "mb-2",
+         style = "font-size: 0.8rem;",
+-        "This map shows survey activity density in Palma and Mocimboa districts"
++        "Distribution of survey data collection points across districts"
+       ),
+       tags$h4(
+         class = "mb-2",
+         style = "font-size: 0.9rem; font-weight: 600; color: #666;",
+-        "Activity Density"
++        "Survey Density"
+       ),
+       tags$div(
+         class = "mb-1",
+@@ -112,8 +125,8 @@ map_info_panel <- function(ns, color_styles) {
+       tags$div(
+         class = "d-flex justify-content-between text-muted mb-3",
+         style = "font-size: 0.8rem;",
+-        tags$span("Low"),
+-        tags$span("High")
++        tags$span("Sparse"),
++        tags$span("Dense")
+       )
+     )
+   )
+diff --git a/R/static_plots.R b/R/static_plots.R
+index be418e1..03355d4 100644
+--- a/R/static_plots.R
++++ b/R/static_plots.R
+@@ -94,7 +94,7 @@ taxa_barchart <- function(data = NULL) {
+   apexcharter::apex(
+     data = data,
+     type = "bar",
+-    mapping = apexcharter::aes(x = landing_site, y = catch_percent, fill = catch_taxon),
++    mapping = apexcharter::aes(x = .data$landing_site, y = .data$catch_percent, fill = .data$catch_taxon),
+     height = 500
+   ) %>%
+     # apexcharter::ax_tooltip(
+@@ -123,7 +123,7 @@ taxa_barchart <- function(data = NULL) {
+ 
+ 
+ dumbbell_length <- function(data = NULL) {
+-  apexcharter::apex(data, aes(catch_taxon, x = q25, xend = q75), type = "dumbbell") %>%
++  apexcharter::apex(data, apexcharter::aes(.data$catch_taxon, x = .data$q25, xend = .data$q75), type = "dumbbell") %>%
+     apexcharter::ax_plotOptions(
+       bar = apexcharter::bar_opts(
+         dumbbellColors = list(list("#C9C5BA", "#70163C"))
+diff --git a/R/tab_catch.R b/R/tab_catch.R
+index 9ed6464..6f9ddf0 100644
+--- a/R/tab_catch.R
++++ b/R/tab_catch.R
+@@ -10,9 +10,26 @@ tab_catch_content <- function() {
+         title = "Catch"
+       )
+     ),
+-    # district_selector("catch-district"),
+     page_cards(
+-      # First row of cards - Time series and Spider plot
++      # First row - Time series
++      tags$div(
++        class = "row g-2",
++        tags$div(
++          class = "col-lg-12",
++          card(
++            title = "Catch trends",
++            tooltip = "
++              <p>This visualization shows the temporal trends in catch metrics:</p>
++              <ul class='mb-0'>
++                <li>Bars show monthly averaged values for each district</li>
++                <li>Missing values are periods with no data collection</li>
++              </ul>
++            ",
++            mod_ts_ui(id = "catch_ts")
++          )
++        )
++      ),
++      # Second row - Catch composition and Length distribution
+       tags$div(
+         class = "row g-2",
+         tags$div(
+@@ -25,38 +42,38 @@ tab_catch_content <- function() {
+         tags$div(
+           class = "col-lg-4",
+           card(
+-            title = "Length disitribution",
++            title = "Length distribution",
+             tooltip = "
+-  <p>This visualization shows the length distribution for the 10 most important fish groups in terms of catch:</p>
+-  <ul class='mb-0'>
+-    <li>Each bar represents the interquartile range (IQR) of fish lengths</li>
+-    <li>The left end shows the 25th percentile (Q1)</li>
+-    <li>The right end shows the 75th percentile (Q3)</li>
+-    <li>Longer bars indicate greater variation in fish sizes</li>
+-    <li>Species are ranked by their 75th percentile length</li>
+-  </ul>
+-  ",
++              <p>This visualization shows the length distribution for the 10 most important fish groups in terms of catch:</p>
++              <ul class='mb-0'>
++                <li>Each bar represents the interquartile range (IQR) of fish lengths</li>
++                <li>The left end shows the 25th percentile (Q1)</li>
++                <li>The right end shows the 75th percentile (Q3)</li>
++                <li>Longer bars indicate greater variation in fish sizes</li>
++                <li>Species are ranked by their 75th percentile length</li>
++              </ul>
++            ",
+             mod_dumbbell_ui(id = "length_dumbbell")
+           )
+         )
+       ),
+-      # Second row - Treemap
++      # Third row - Treemap
+       tags$div(
+         class = "row g-2",
+         tags$div(
+-          class = "col-12",
++          class = "col-lg-12",
+           card(
+             title = "Catch rates by gear",
+             tooltip = "
+-   <p>This visualization shows the average catch per unit of effort (CPUE) for each fishing gear type in different habitats:</p>
+-  <ul class='mb-0'>
+-    <li>CPUE is calculated as catch (kg) per fisher per hour</li>
+-    <li>Size of boxes indicates relative CPUE for each gear type</li>
+-    <li>Colors indicate different fishing habitats</li>
+-    <li>Higher CPUE suggests more efficient fishing methods</li>
+-    <li>Values are averaged across all fishing trips</li>
+-  </ul>
+-  ",
++              <p>This visualization shows the average catch per unit of effort (CPUE) for each fishing gear type in different habitats:</p>
++              <ul class='mb-0'>
++                <li>CPUE is calculated as catch (kg) per fisher per hour</li>
++                <li>Size of boxes indicates relative CPUE for each gear type</li>
++                <li>Colors indicate different fishing habitats</li>
++                <li>Higher CPUE suggests more efficient fishing methods</li>
++                <li>Values are averaged across all fishing trips</li>
++              </ul>
++            ",
+             mod_treemap_ui(id = "catch_treemap")
+           )
+         )
+diff --git a/R/tab_home.R b/R/tab_home.R
+index 24f3524..9a2b7cc 100644
+--- a/R/tab_home.R
++++ b/R/tab_home.R
+@@ -36,7 +36,7 @@ tab_home_content <- function() {
+         class = "row g-2",
+         tags$div(
+           class = "col-12",
+-          mod_heatmap_ui("heatmap")
++          mod_map_ui("leafmap")
+         )
+       ),
+       # Third row - District summary table
+diff --git a/R/tab_revenue.R b/R/tab_revenue.R
+index 5187316..00521c8 100644
+--- a/R/tab_revenue.R
++++ b/R/tab_revenue.R
+@@ -18,6 +18,24 @@ tab_revenue_content <- function() {
+     ),
+     # district_selector("revenue-district"),
+     page_cards(
++      tags$div(
++        class = "row g-2",
++        tags$div(
++          class = "col-lg-12",
++          card(
++            title = "Revenue trends",
++            tooltip = "
++              <p>This visualization shows the temporal trends in catch metrics:</p>
++              <ul class='mb-0'>
++                <li>Bars show monthly averaged values for each district</li>
++                <li>Missing values are periods with no data collection</li>
++              </ul>
++            ",
++            mod_ts_ui(id = "revenue_ts")
++          )
++        )
++      ),
++      # Second row
+       tags$div(
+         class = "row g-2"
+       ),
+diff --git a/R/tabler_cards.R b/R/tabler_cards.R
+index f8e6867..3e5bcd3 100644
+--- a/R/tabler_cards.R
++++ b/R/tabler_cards.R
+@@ -108,4 +108,3 @@ map_card <- function(map, height = "400px") {
+     )
+   )
+ }
+-
+diff --git a/data-raw/get_data.R b/data-raw/get_data.R
+index c3af976..bf9535d 100644
+--- a/data-raw/get_data.R
++++ b/data-raw/get_data.R
+@@ -30,7 +30,7 @@ mdb_collection_pull <- function(connection_string = NULL, collection_name = NULL
+ }
+ 
+ 
+-valid_data <-
++validated_data <-
+   mdb_collection_pull(
+     connection_string = config$storage$mongodb$connection_string,
+     collection_name = config$storage$mongodb$collection_name$validated,
+@@ -38,18 +38,88 @@ valid_data <-
+   ) %>%
+   dplyr::as_tibble()
+ 
++valid_data_ids <-
++  validated_data |>
++  dplyr::select(submission_id) |>
++  dplyr::pull() |>
++  unique()
++
++valid_data <-
++  mdb_collection_pull(
++    connection_string = config$storage$mongodb$connection_string,
++    collection_name = config$storage$mongodb$collection_name$preprocessed,
++    db_name = config$storage$mongodb$database_name
++  ) %>%
++  dplyr::as_tibble() |>
++  dplyr::filter(submission_id %in% valid_data_ids)
++
++
++
++ts_data <-
++  valid_data |>
++  tidyr::unnest(catch_df, keep_empty = TRUE) %>%
++  dplyr::select(submission_id, landing_date, district, catch_gr, catch_price) %>%
++  dplyr::filter(catch_gr > 0) |>
++  dplyr::mutate(
++    date = lubridate::floor_date(landing_date, unit = "month") # Round dates upfront
++  ) |>
++  dplyr::group_by(district, date) |>
++  dplyr::summarise(
++    mean_catch_kg = mean(catch_gr) / 1000,
++    mean_catch_price = mean(catch_price),
++    .groups = "drop" # Drop grouping after summarization
++  ) |>
++  tidyr::complete(
++    district,
++    date,
++    fill = list(mean_catch_kg = NA_real_, mean_catch_price = NA_real_) # Fill all metrics
++  ) |>
++  tidyr::pivot_longer(
++    cols = starts_with("mean_"), # Pivot only mean-related columns
++    names_to = "metric",
++    values_to = "value"
++  ) |>
++  dplyr::mutate(
++    date_label = format(date, "%b %y") # Add a preformatted date label for plotting
++  )
++
++usethis::use_data(ts_data, overwrite = T)
++
+ 
+ map_data <-
+   valid_data %>%
+-  dplyr::select(lat, lon)
++  dplyr::select(lat, lon) |> 
++  na.omit() |> 
++  as.data.frame()
++
++mozamap <-
++  sf::read_sf(system.file("palma_area.geojson", package = "peskas.mozambique.portal")) |>
++  dplyr::filter(ADM2_PT %in% c("Mocimboa Da Praia", "Palma"))
++
++points_sf <- 
++  map_data %>%
++sf::st_as_sf(
++  coords = c("lon", "lat"),
++  crs = sf::st_crs(mozamap)
++)
++
++# Count points in each polygon and join back to mozamap
++mozamap_with_counts <- 
++mozamap %>%
++dplyr::mutate(
++  n_observations = lengths(sf::st_intersects(geometry, points_sf))
++)
+ 
+ usethis::use_data(map_data, overwrite = T)
++usethis::use_data(mozamap_with_counts, overwrite = T)
++
+ 
+ taxa_df <-
+   valid_data %>%
+   dplyr::select(submission_id, catch_df) %>%
+   tidyr::unnest(catch_df, keep_empty = T) %>%
+   dplyr::select(-c("n", "length_class", "counts", "catch_estimate":"weight_bucket")) %>%
++  dplyr::filter(catch_gr > 0) |>
+   dplyr::group_by(submission_id, catch_taxon) %>%
+   dplyr::summarise(catch_gr = sum(catch_gr, na.rm = T)) %>%
+   dplyr::ungroup()
+@@ -61,6 +131,7 @@ aggregated_catch <-
+   valid_data %>%
+   dplyr::select(submission_id, catch_df) %>%
+   tidyr::unnest(catch_df, keep_empty = T) %>%
++  dplyr::filter(catch_gr > 0) |>
+   dplyr::group_by(submission_id) %>%
+   dplyr::summarise(
+     catch_kg = sum(catch_gr, na.rm = T) / 1000
+@@ -93,6 +164,7 @@ top_6_taxa <-
+   dplyr::filter(!catch_outcome == "0") %>%
+   dplyr::select(district, landing_site, catch_df) %>%
+   tidyr::unnest(catch_df, keep_empty = T) %>%
++  dplyr::filter(catch_gr > 0) |>
+   dplyr::group_by(catch_taxon) %>%
+   dplyr::summarise(catch_kg = sum(catch_gr, na.rm = T) / 1000) %>%
+   dplyr::arrange(-catch_kg, .by_group = T) %>%
+@@ -105,6 +177,7 @@ taxa_summary <-
+   dplyr::filter(!catch_outcome == "0") %>%
+   dplyr::select(district, landing_site, catch_df) %>%
+   tidyr::unnest(catch_df, keep_empty = T) %>%
++  dplyr::filter(catch_gr > 0) |>
+   dplyr::mutate(catch_taxon = ifelse(catch_taxon %in% top_6_taxa, catch_taxon, "Other")) %>%
+   dplyr::group_by(landing_site) %>%
+   dplyr::mutate(tot_catch_kg = sum(catch_gr, na.rm = T) / 1000) %>%
+@@ -123,8 +196,9 @@ taxa_summary <-
+ 
+ usethis::use_data(taxa_summary, overwrite = T)
+ 
+-
+-base_data <- valid_data %>%
++# gear habitat
++base_data <-
++  valid_data %>%
+   dplyr::left_join(aggregated_catch, by = "submission_id") %>%
+   dplyr::filter(!catch_outcome == "0" & catch_kg > 0, tot_fishers != 0 & trip_duration != 0) %>%
+   dplyr::mutate(
+@@ -186,6 +260,7 @@ top_11_taxa <-
+   dplyr::filter(!catch_outcome == "0") %>%
+   dplyr::select(district, landing_site, catch_df) %>%
+   tidyr::unnest(catch_df, keep_empty = T) %>%
++  dplyr::filter(catch_gr > 0) |>
+   dplyr::group_by(catch_taxon) %>%
+   dplyr::summarise(catch_kg = sum(catch_gr, na.rm = T) / 1000) %>%
+   dplyr::arrange(-catch_kg, .by_group = T) %>%
+@@ -197,6 +272,7 @@ length_data <-
+   valid_data %>%
+   dplyr::filter(!catch_outcome == "0") %>%
+   tidyr::unnest(catch_df, keep_empty = T) %>%
++  dplyr::filter(catch_gr > 0) |>
+   dplyr::filter(catch_taxon %in% top_11_taxa) %>%
+   dplyr::mutate(catch_taxon = dplyr::case_when(
+     catch_taxon == "Tuna/Bonito/Other Mackerel" ~ "Tuna/Bonito",
+diff --git a/data/length_data.rda b/data/length_data.rda
+index dda0b5e..b13793c 100644
+Binary files a/data/length_data.rda and b/data/length_data.rda differ
+diff --git a/data/map_data.rda b/data/map_data.rda
+index da1db6f..90036cd 100644
+Binary files a/data/map_data.rda and b/data/map_data.rda differ
+diff --git a/data/tab_data.rda b/data/tab_data.rda
+index e785085..893e98e 100644
+Binary files a/data/tab_data.rda and b/data/tab_data.rda differ
+diff --git a/data/taxa_df.rda b/data/taxa_df.rda
+index 6985d1b..1051e84 100644
+Binary files a/data/taxa_df.rda and b/data/taxa_df.rda differ
+diff --git a/data/taxa_summary.rda b/data/taxa_summary.rda
+index cef2d9f..563ded0 100644
+Binary files a/data/taxa_summary.rda and b/data/taxa_summary.rda differ
+diff --git a/data/treeplot_data.rda b/data/treeplot_data.rda
+index 2805310..a2f7ac3 100644
+Binary files a/data/treeplot_data.rda and b/data/treeplot_data.rda differ
+diff --git a/inst/golem-config.yml b/inst/golem-config.yml
+index 1a84c35..d817088 100644
+--- a/inst/golem-config.yml
++++ b/inst/golem-config.yml
+@@ -13,6 +13,7 @@ default:
+       database_name: pipeline
+       collection_name:
+         validated: validated
++        preprocessed: preprocessed
+   mapbox_token: !expr readLines('auth/mapbox-token')
+   validation:
+     user: !expr readLines('auth/username')
+diff --git a/man/heatmap_map.Rd b/man/heatmap_map.Rd
+deleted file mode 100644
+index 41d05c4..0000000
+--- a/man/heatmap_map.Rd
++++ /dev/null
+@@ -1,17 +0,0 @@
+-% Generated by roxygen2: do not edit by hand
+-% Please edit documentation in R/mod_hex_map.R
+-\name{heatmap_map}
+-\alias{heatmap_map}
+-\title{Create a heatmap using deckgl}
+-\usage{
+-heatmap_map(data)
+-}
+-\arguments{
+-\item{data}{A dataframe containing lat/lon coordinates}
+-}
+-\value{
+-A deckgl object
+-}
+-\description{
+-Create a heatmap using deckgl
+-}
