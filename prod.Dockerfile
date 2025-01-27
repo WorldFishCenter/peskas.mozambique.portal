@@ -4,19 +4,15 @@ ENV HOST 0.0.0.0
 ENV SHINY_LOG_STDERR=1
 ENV SHINY_LOG_LEVEL='INFO'
 
-# Install system dependencies and shiny-server
+# Install shiny-server using rocker's script
+RUN export ADD=shiny && bash /etc/cont-init.d/add
+
+# Install system dependencies
 RUN apt-get update && apt-get install --no-install-recommends -y \
     curl \
     ca-certificates \
     libudunits2-0 \
-    gdebi-core \
-    && curl -L -O https://download3.rstudio.org/ubuntu-18.04/x86_64/shiny-server-1.5.20.1002-amd64.deb \
-    && gdebi -n shiny-server-1.5.20.1002-amd64.deb \
-    && rm shiny-server-1.5.20.1002-amd64.deb \
     && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
-
-# Install R package 'shiny'
-RUN install2.r --error --skipinstalled -n 2 shiny
 
 # Create necessary directories
 RUN mkdir -p /srv/shiny-server/www/vendor \
@@ -70,11 +66,6 @@ RUN Rscript -e 'remotes::install_local("/srv/shiny-server", dependencies = FALSE
 # Copy configuration and app entry point
 COPY shiny.config /etc/shiny-server/shiny-server.conf
 COPY app.R /srv/shiny-server/app.R
-
-# Create shiny user and group if they don't exist
-RUN if ! id -u shiny > /dev/null 2>&1; then \
-    groupadd -r shiny && useradd -r -g shiny shiny; \
-fi
 
 # Set proper permissions
 RUN chown -R shiny:shiny /srv/shiny-server \
