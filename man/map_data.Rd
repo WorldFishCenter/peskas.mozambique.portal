@@ -5,7 +5,7 @@
 \alias{map_data}
 \title{Fishing Location Data}
 \format{
-A tibble with columns:
+A data frame with columns:
   \describe{
     \item{lat}{Latitude coordinate}
     \item{lon}{Longitude coordinate}
@@ -15,6 +15,9 @@ A tibble with columns:
 map_data
 }
 \description{
-Geographical coordinates of fishing activities
+Geographical coordinates of valid fishing activities, cleaned to remove NA values
+}
+\details{
+Data has been cleaned to remove any NA values in coordinates
 }
 \keyword{datasets}
