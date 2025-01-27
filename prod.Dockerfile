@@ -29,7 +29,6 @@ RUN install2.r --error --skipinstalled -n 2 \
     remotes \
     dplyr \
     reactable \
-    sf \
     htmltools \
     memoise \
     apexcharter \
