@@ -1,4 +1,4 @@
-FROM rocker/geospatial:4
+FROM rocker/shiny-verse:4
 
 ENV HOST 0.0.0.0
 ENV SHINY_LOG_STDERR=1
@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     curl \
     ca-certificates \
     libudunits2-0 \
+    libudunits2-dev \
     && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Create necessary directories
@@ -17,11 +18,11 @@ RUN mkdir -p /srv/shiny-server/www/vendor \
     && mkdir -p /var/log/shiny-server
 
 # Download and cache JavaScript dependencies locally
-RUN cd /srv/shiny-server/www/vendor \
-    && curl -L -o apexcharts.min.js https://cdn.jsdelivr.net/npm/apexcharts@3.26.2/dist/apexcharts.min.js \
-    && curl -L -o jquery.min.js https://code.jquery.com/jquery-3.6.0.min.js \
-    && curl -L -o tabler.min.css https://unpkg.com/@tabler/core@1.0.0-beta21/dist/css/tabler.min.css \
-    && curl -L -o tabler.min.js https://unpkg.com/@tabler/core@1.0.0-beta21/dist/js/tabler.min.js
+RUN cd /srv/shiny-server/www/vendor && \
+    curl -L -o apexcharts.min.js https://cdn.jsdelivr.net/npm/apexcharts@3.26.2/dist/apexcharts.min.js && \
+    curl -L -o jquery.min.js https://code.jquery.com/jquery-3.6.0.min.js && \
+    curl -L -o tabler.min.css https://unpkg.com/@tabler/core@1.0.0-beta21/dist/css/tabler.min.css && \
+    curl -L -o tabler.min.js https://unpkg.com/@tabler/core@1.0.0-beta21/dist/js/tabler.min.js
 
 # Extra R packages
 RUN install2.r --error --skipinstalled -n 2 \
@@ -43,12 +44,8 @@ RUN install2.r --error --skipinstalled -n 2 \
     shinyjs \
     V8 \
     leaflet \
-    leaflet.extras
-
-# Install system dependencies for R packages that require them
-RUN apt-get update && apt-get install --no-install-recommends -y \
-    libudunits2-dev \
-    && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+    leaflet.extras \
+    sf
 
 # Copy application files
 COPY inst /srv/shiny-server/inst
@@ -63,9 +60,6 @@ RUN Rscript -e 'remotes::install_local("/srv/shiny-server", dependencies = FALSE
 # Copy configuration and app entry point
 COPY shiny.config /etc/shiny-server/shiny-server.conf
 COPY app.R /srv/shiny-server/app.R
-
-# Create shiny user and group
-RUN groupadd -r shiny && useradd -r -g shiny shiny
 
 # Set proper permissions
 RUN chown -R shiny:shiny /srv/shiny-server \
