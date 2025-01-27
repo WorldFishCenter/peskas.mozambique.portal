@@ -14,7 +14,6 @@ default:
       collection_name:
         validated: validated
         preprocessed: preprocessed
-  mapbox_token: !expr readLines('auth/mapbox-token')
   validation:
     user: !expr readLines('auth/username')
     pass: !expr readLines('auth/password')
@@ -29,7 +28,6 @@ production:
   storage:
     mongodb:
       connection_string: !expr Sys.getenv('MONGODB_CONNECTION_STRING')
-  mapbox_token: !expr Sys.getenv('MAPBOX-TOKEN')
   validation:
     user: !expr Sys.getenv('VAL_USER')
     pass: !expr Sys.getenv('VAL_PASS')
