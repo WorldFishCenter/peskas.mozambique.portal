@@ -1,4 +1,4 @@
-FROM rocker/shiny:4
+FROM rocker/geospatial:4
 
 ENV HOST 0.0.0.0
 ENV SHINY_LOG_STDERR=1
