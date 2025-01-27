@@ -17,15 +17,27 @@ jobs:
       R_CONFIG_ACTIVE: production
       GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
       MONGODB_CONNECTION_STRING: ${{ secrets.MONGODB_CONNECTION_STRING }}
+      ASSET_ID: ${{ secrets.ASSET_ID }}
+      KOBO_TOKEN: ${{ secrets.KOBO_TOKEN }}
+      VAL_USER: ${{ secrets.VAL_USER }}
+      VAL_PASS: ${{ secrets.VAL_PASS }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+
+      - name: Install System Dependencies
+        run: |
+          apt-get update
+          apt-get install -y libudunits2-0 libudunits2-dev
+
       - run: git config --global --add safe.directory /__w/peskas.mozambique.portal/peskas.mozambique.portal
+
       - name: Update data
         run: |
           Rscript -e 'install.packages(c("remotes"))'
-          Rscript -e 'remotes::install_cran(c("config", "mongolite", "tidyr", "lubridate", "dplyr", "sf"), quick = TRUE)'
+          Rscript -e 'remotes::install_cran(c("config", "mongolite", "tidyr", "lubridate", "dplyr"), repos = "https://cloud.r-project.org", dependencies=TRUE, quiet = TRUE)'
           Rscript -e 'source("update_data.R")'
+
       - name: Commit changes to package data
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
