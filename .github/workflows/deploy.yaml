@@ -12,7 +12,7 @@ jobs:
   update-data:
     name: Update dashboard data
     runs-on: ubuntu-latest
-    container: rocker/shiny-verse:4
+    container: rocker/geospatial:4
     env:
       R_CONFIG_ACTIVE: production
       GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
@@ -35,7 +35,7 @@ jobs:
       - name: Update data
         run: |
           Rscript -e 'install.packages(c("remotes"))'
-          Rscript -e 'remotes::install_cran(c("config", "mongolite", "tidyr", "lubridate", "dplyr", "sf"), quick = TRUE)'
+          Rscript -e 'remotes::install_cran(c("config", "mongolite", "tidyr", "lubridate", "dplyr"), quick = TRUE)'
           Rscript -e 'source("update_data.R")'
 
       - name: Commit changes to package data
@@ -59,7 +59,6 @@ jobs:
           curl -L -o www/vendor/jquery.min.js https://code.jquery.com/jquery-3.6.0.min.js
           curl -L -o www/vendor/tabler.min.css https://unpkg.com/@tabler/core@1.0.0-beta21/dist/css/tabler.min.css
           curl -L -o www/vendor/tabler.min.js https://unpkg.com/@tabler/core@1.0.0-beta21/dist/js/tabler.min.js
-          curl -L -o www/vendor/deck.min.js https://cdn.jsdelivr.net/npm/deck.gl@9.0.34/dist/index.js
 
       - name: Set up Google Cloud SDK
         uses: google-github-actions/setup-gcloud@v0.6.1
@@ -85,12 +84,7 @@ jobs:
           service: peskas-mozambique-shiny
           image: europe-west1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/peskas-mozambique-shiny/${{ github.sha }}
           env_vars: |
-            R_CONFIG_ACTIVE=production
             MONGODB_CONNECTION_STRING=${{ secrets.MONGODB_CONNECTION_STRING }}
-            ASSET_ID=${{ secrets.ASSET_ID }}
-            KOBO_TOKEN=${{ secrets.KOBO_TOKEN }}
-            VAL_USER=${{ secrets.VAL_USER }}
-            VAL_PASS=${{ secrets.VAL_PASS }}
           flags: >-
             --cpu=2
             --memory=4Gi
