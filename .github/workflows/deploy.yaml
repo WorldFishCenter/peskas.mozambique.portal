@@ -87,14 +87,15 @@ jobs:
             MONGODB_CONNECTION_STRING=${{ secrets.MONGODB_CONNECTION_STRING }}
           flags: >-
             --cpu=2
-            --memory=4Gi
-            --concurrency=40
-            --max-instances=10
+            --memory=2Gi
+            --concurrency=20
+            --max-instances=5
             --min-instances=2
-            --timeout=300
+            --timeout=600
             --cpu-boost
             --no-cpu-throttling
             --session-affinity
+            
           region: europe-west1
 
       - name: Show Output
