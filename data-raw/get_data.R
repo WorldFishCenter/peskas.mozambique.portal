@@ -88,15 +88,15 @@ usethis::use_data(ts_data, overwrite = T)
 
 map_data <-
   valid_data %>%
-  dplyr::select(lat, lon) |> 
-  na.omit() |> 
+  dplyr::select(lat, lon) |>
+  na.omit() |>
   as.data.frame()
 
 mozamap <-
   sf::read_sf("inst/palma_area.geojson") |>
   dplyr::filter(ADM2_PT %in% c("Mocimboa Da Praia", "Palma"))
 
-points_sf <- 
+points_sf <-
   map_data %>%
 sf::st_as_sf(
   coords = c("lon", "lat"),
@@ -104,7 +104,7 @@ sf::st_as_sf(
 )
 
 # Count points in each polygon and join back to mozamap
-mozamap_with_counts <- 
+mozamap_with_counts <-
 mozamap %>%
 dplyr::mutate(
   n_observations = lengths(sf::st_intersects(geometry, points_sf))
@@ -199,6 +199,7 @@ usethis::use_data(taxa_summary, overwrite = T)
 # gear habitat
 base_data <-
   valid_data %>%
+  dplyr::filter(!is.na(gear)) |>
   dplyr::left_join(aggregated_catch, by = "submission_id") %>%
   dplyr::filter(!catch_outcome == "0" & catch_kg > 0, tot_fishers != 0 & trip_duration != 0) %>%
   dplyr::mutate(
