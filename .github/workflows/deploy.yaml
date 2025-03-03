@@ -86,11 +86,11 @@ jobs:
           env_vars: |
             MONGODB_CONNECTION_STRING=${{ secrets.MONGODB_CONNECTION_STRING }}
           flags: >-
-            --cpu=2
+            --cpu=1
             --memory=2Gi
             --concurrency=20
             --max-instances=5
-            --min-instances=2
+            --min-instances=1
             --timeout=600
             --cpu-boost
             --no-cpu-throttling
